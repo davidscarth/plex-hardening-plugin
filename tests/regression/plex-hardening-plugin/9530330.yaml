@@ -20,7 +20,7 @@ tests:
           log:
             expect_ids: [9530330]
   - test_id: 2
-    desc: "/updater/status fires"
+    desc: "/updater/check fires"
     stages:
       - input:
           dest_addr: 127.0.0.1
@@ -30,11 +30,26 @@ tests:
             Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
           port: 80
           method: GET
-          uri: "/updater/status"
+          uri: "/updater/check"
         output:
           log:
             expect_ids: [9530330]
   - test_id: 3
+    desc: "/updater/apply fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/updater/apply?tonight=1"
+        output:
+          log:
+            expect_ids: [9530330]
+  - test_id: 4
     desc: "/system/notification exact fires"
     stages:
       - input:
@@ -46,21 +61,6 @@ tests:
           port: 80
           method: GET
           uri: "/system/notification"
-        output:
-          log:
-            expect_ids: [9530330]
-  - test_id: 4
-    desc: "/activities fires"
-    stages:
-      - input:
-          dest_addr: 127.0.0.1
-          headers:
-            Host: localhost
-            User-Agent: OWASP CRS
-            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
-          port: 80
-          method: GET
-          uri: "/activities"
         output:
           log:
             expect_ids: [9530330]
@@ -80,6 +80,51 @@ tests:
           log:
             expect_ids: [9530330]
   - test_id: 6
+    desc: "Query string after a denied path still fires (REQUEST_URI anchor)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/:/prefs?X-Plex-Token=abc"
+        output:
+          log:
+            expect_ids: [9530330]
+  - test_id: 7
+    desc: "GET /updater/status is allowed (polled by Plex Web; 403 from Plex to shared tokens)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/updater/status?X-Plex-Product=Plex%20Web"
+        output:
+          log:
+            no_expect_ids: [9530330]
+  - test_id: 8
+    desc: "GET /activities is allowed (progress poll; per-account filtered by Plex)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/activities?X-Plex-Product=Plex%20Web"
+        output:
+          log:
+            no_expect_ids: [9530330]
+  - test_id: 9
     desc: "Shared-client path /library/sections does not fire"
     stages:
       - input:
@@ -94,7 +139,7 @@ tests:
         output:
           log:
             no_expect_ids: [9530330]
-  - test_id: 7
+  - test_id: 10
     desc: "Deliberately exposed /status/sessions does not fire"
     stages:
       - input:
@@ -109,7 +154,7 @@ tests:
         output:
           log:
             no_expect_ids: [9530330]
-  - test_id: 8
+  - test_id: 11
     desc: "Deliberately exposed /statistics/bandwidth does not fire"
     stages:
       - input:
@@ -124,7 +169,7 @@ tests:
         output:
           log:
             no_expect_ids: [9530330]
-  - test_id: 9
+  - test_id: 12
     desc: "Prefix lookalike /serversomething is not matched"
     stages:
       - input:

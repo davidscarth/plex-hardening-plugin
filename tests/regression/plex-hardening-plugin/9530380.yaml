@@ -1,0 +1,96 @@
+---
+meta:
+  author: "David Scarth"
+  description: "server activity cancel deny (method-scoped)"
+rule_id: 9530380
+tests:
+  - test_id: 1
+    desc: "DELETE /activities/{id} fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/activities/2d1c6a7e-4b3f-4c1e-9a8d-0f1e2d3c4b5a"
+        output:
+          log:
+            expect_ids: [9530380]
+  - test_id: 2
+    desc: "DELETE /activities/{id} with a query string fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/activities/2d1c6a7e?X-Plex-Token=abc"
+        output:
+          log:
+            expect_ids: [9530380]
+  - test_id: 3
+    desc: "DELETE on the bare collection fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/activities"
+        output:
+          log:
+            expect_ids: [9530380]
+  - test_id: 4
+    desc: "GET /activities does not fire (progress poll)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/activities?X-Plex-Product=Plex%20for%20Windows"
+        output:
+          log:
+            no_expect_ids: [9530380]
+  - test_id: 5
+    desc: "GET /activities/{id} does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/activities/2d1c6a7e"
+        output:
+          log:
+            no_expect_ids: [9530380]
+  - test_id: 6
+    desc: "DELETE elsewhere does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/playlists/123"
+        output:
+          log:
+            no_expect_ids: [9530380]
