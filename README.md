@@ -22,7 +22,7 @@ The CRS plugin documentation can be found on the [website](https://coreruleset.o
 - OWASP CRS 4.25.1 or newer. Verified against 4.25.x (the CI harness's LTS target) and 4.29.0 (production, at PL1).
 - ModSecurity 2.9 / 3.x or Coraza v3 (tested with coraza-caddy)
 
-The endpoint denies assume the owner administers Plex on localhost or the LAN, not through the proxied hostname, and that only shared users' clients arrive through the proxy. Read [Endpoint denies](#endpoint-denies) before deploying anywhere that isn't true, or turn them off (see Configuration).
+The endpoint denies assume the owner administers Plex on localhost or the LAN. This includes Plex Web at app.plex.tv: off the LAN it connects through the proxied hostname and is treated like any other remote client. Dashboard, Now Playing, History and stopping playback still work there (Plex gates those per account itself); server settings, updates and the other management operations in the deny table do not, by design. Read [Endpoint denies](#endpoint-denies) before deploying anywhere that isn't acceptable, or turn them off (see Configuration).
 
 ## How to install the plugin
 
@@ -143,7 +143,7 @@ The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchor
 
 ## Interactions
 
-- **Exclusions vs. detection:** 9530100 removes `ARGS:X-Plex-Client-Profile-Extra` from 932235 only and 9530110 removes `ARGS:url` from 931100/934110 only. Detection rules 9530200 and 9530220 still inspect those targets.
+- **Exclusions vs. detection:** 9530100 removes `ARGS:X-Plex-Client-Profile-Extra` from 932235 and 932370 only and 9530110 removes `ARGS:url` from 931100/934110 only. Detection rules 9530200 and 9530220 still inspect those targets.
 - **Coraza:** all regexes are RE2-compatible (no lookaround or backreferences); no persistent collections are used. Do not add a path-normalising transform to the endpoint denies (see Endpoint denies). Check how your Coraza connector maps `drop`, or use the `SecRuleUpdateActionById` line above.
 - **Tags:** the plugin's rules carry `plex-hardening-plugin` (and `plex-hardening-plugin/endpoint-deny` on the denies), not `OWASP_CRS`. A tag-wide exclusion such as `ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS` therefore leaves this plugin's rules active on that path - intended, so a broad CRS exclusion on an unrelated application does not silently switch off Plex protection. To exclude the plugin's rules on a path, target the plugin's own tag or its ID range: `ctl:ruleRemoveByTag=plex-hardening-plugin` or `ctl:ruleRemoveById=9530200-9530299`.
 
