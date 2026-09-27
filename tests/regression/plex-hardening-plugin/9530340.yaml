@@ -1,0 +1,51 @@
+---
+meta:
+  author: "David Scarth"
+  description: "unauthenticated agent endpoint deny"
+rule_id: 9530340
+tests:
+  - test_id: 1
+    desc: "/system/agents fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/agents"
+        output:
+          log:
+            expect_ids: [9530340]
+  - test_id: 2
+    desc: "/system/agents/media/get fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/agents/media/get?url=x"
+        output:
+          log:
+            expect_ids: [9530340]
+  - test_id: 3
+    desc: "/system/notification is not this rule"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/notification"
+        output:
+          log:
+            no_expect_ids: [9530340]

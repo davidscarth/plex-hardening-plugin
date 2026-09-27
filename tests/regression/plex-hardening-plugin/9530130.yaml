@@ -1,0 +1,21 @@
+---
+meta:
+  author: "David Scarth"
+  description: "Plex HDHomeRun tuner discovery must not trigger 931100"
+rule_id: 9530130
+tests:
+  - test_id: 1
+    desc: "Tuner LAN address in uri= is excluded from 931100 on the hdhomerun devices endpoint"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/media/grabbers/tv.plex.grabbers.hdhomerun/devices?uri=http%3A%2F%2F192.168.1.50%3A80"
+        output:
+          log:
+            no_expect_ids: [931100]

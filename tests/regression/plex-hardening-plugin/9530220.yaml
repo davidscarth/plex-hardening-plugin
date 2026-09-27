@@ -1,0 +1,82 @@
+---
+meta:
+  author: "David Scarth"
+  description: "encoder flag setting in client profile augmentation"
+rule_id: 9530220
+tests:
+  - test_id: 1
+    desc: "VideoEncodeFlags via header fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+            X-Plex-Client-Profile-Extra: "add-transcode-target-settings(type=videoProfile&context=streaming&protocol=hls&VideoEncodeFlags=-x264opts%20foo)"
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/start.m3u8?path=%2Flibrary%2Fmetadata%2F1"
+        output:
+          log:
+            expect_ids: [9530220]
+  - test_id: 2
+    desc: "AudioDecodeFlags via query parameter fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/start.m3u8?X-Plex-Client-Profile-Extra=add-transcode-target-settings(type%3DvideoProfile%26AudioDecodeFlags%3Dfoo)"
+        output:
+          log:
+            expect_ids: [9530220]
+  - test_id: 3
+    desc: "Any other *Flags setting fires (family match)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/start.m3u8?X-Plex-Client-Profile-Extra=add-transcode-target-settings(SubtitleEncodeFlags%3Dfoo)"
+        output:
+          log:
+            expect_ids: [9530220]
+  - test_id: 4
+    desc: "Normal add-transcode-target augmentation does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/start.m3u8?X-Plex-Client-Profile-Extra=add-transcode-target(type%3DvideoProfile%26context%3Dstreaming%26protocol%3Ddash%26container%3Dmp4%26videoCodec%3Dh264%26audioCodec%3Daac)"
+        output:
+          log:
+            no_expect_ids: [9530220]
+  - test_id: 5
+    desc: "Word containing flags but not a setting assignment does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/start.m3u8?X-Plex-Client-Profile-Extra=add-limitation(scope%3DvideoCodec%26scopeName%3Dh264%26type%3DupperBound%26name%3Dvideo.flagsRateLimit%26value%3D1)"
+        output:
+          log:
+            no_expect_ids: [9530220]

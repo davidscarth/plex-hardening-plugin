@@ -1,0 +1,51 @@
+---
+meta:
+  author: "David Scarth"
+  description: "traversal inside media:// on metadata file endpoint"
+rule_id: 9530210
+tests:
+  - test_id: 1
+    desc: "observed in-the-wild request signature fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/136855/file?url=media%3A%2F%2F..%2F..%2FPreferences.xml"
+        output:
+          log:
+            expect_ids: [9530210]
+  - test_id: 2
+    desc: "dotted filename without traversal does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/136855/file?url=media%3A%2F%2Fparts%2F1%2Ffile.with..dots.mkv"
+        output:
+          log:
+            no_expect_ids: [9530210]
+  - test_id: 3
+    desc: "traversal on a different endpoint is not this rule's job"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections?url=media%3A%2F%2F..%2F..%2FPreferences.xml"
+        output:
+          log:
+            no_expect_ids: [9530210]
