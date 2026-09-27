@@ -106,7 +106,7 @@ Test evidence (CRS 4.29.0, 2026-09-26):
 
 Detection rules run in phase 2, score CRITICAL into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialisation in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
 
-Rules 9530200-9530270 are converted from rules that ran in production behind Coraza during and after a 2026 shared-user token compromise, with endpoint scope and parameter shapes taken from the Zenofex findings and Plex's fix strings. One rule is additional and untested against traffic: **9530280**, the reference-scheme allowlist. `media://` is what clients send on this endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
+The exclusions ran in production for over a year before this plugin, and the endpoint denies as reverse-proxy rules before being converted. 9530200 and 9530220 ran in production as standalone rules during and after a 2026 shared-user token compromise. The remaining detection rules (9530230-9530280) were written from the Zenofex findings and Plex's fix strings and confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. On 9530280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
 
 ## Endpoint denies
 
