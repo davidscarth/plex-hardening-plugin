@@ -4,7 +4,7 @@
 schema_version: 1
 
 plugin:
-  name: "plex-hardening"
+  name: "plex-hardening-plugin"
   description: "Hardening for Plex Media Server behind OWASP CRS: required rule exclusions, CVE detection rules and owner-only endpoint denies."
   long_description: |
     Includes the rule exclusions Plex needs to run behind CRS at all (the
@@ -14,8 +14,8 @@ plugin:
     owner-only management endpoints (/web, /myplex, /:/prefs, /system/agents,
     /system/proxy, ...) on a reverse proxy that serves shared users' clients
     only. Written after a 2026 stolen-token incident on a live Plex server.
-  type: "community"
-  category: "hardening"
+  type: "3rd-party"
+  category: "protection"
   status: "tested"
   license: "Apache-2.0"
   authors:
