@@ -13,7 +13,7 @@ The plugin consists of three complementary parts:
 
 - **Rule exclusions** (9530100-9530199) remove the false positives that otherwise break playback, search and thumbnails at paranoia level 1 (PL1). Every exclusion is scoped to one endpoint and one parameter using `ctl:ruleRemoveTargetById`.
 - **Detection rules** (9530200-9530299) cover Plex-specific attack classes that pass CRS at PL1: CVE-2026-96651, -96652, -96654, -96655, -96656 and the Zenofex `Plex_Vuln_PoCs` findings.
-- **Endpoint denies** (9530300-9530399, on by default) drop owner-only management endpoints that a shared user's client never calls.
+- **Endpoint denies** (9530300-9530399, on by default) drop owner-only management operations that a shared user's client never performs. Two endpoints that clients do poll routinely are split by method: `GET /activities` and `GET /updater/status` are allowed, `DELETE /activities/{id}` and `/updater/check|apply` are denied.
 
 The CRS plugin documentation can be found on the [website](https://coreruleset.org/docs/configuring/plugins/).
 
@@ -67,7 +67,7 @@ The plugin uses the allocated block **9530000-9530999**, laid out per the templa
 | `9530099` | Plugin gate (removes 9530100-9530999) |
 | `9530100`-`9530150` | Rule exclusions (phase 1) |
 | `9530200`-`9530280` | Detection rules (phase 2, anomaly-scored) |
-| `9530300`-`9530370` | Owner-only endpoint denies (phase 1, `drop`) |
+| `9530300`-`9530380` | Owner-only endpoint denies (phase 1, `drop`) |
 | `9530500`-`9530999` | Unused, reserved for response rules |
 
 ## Rule exclusions
@@ -110,18 +110,19 @@ Rules 9530200-9530270 are converted from rules that ran in production behind Cor
 
 ## Endpoint denies
 
-Direct conversion of a reverse-proxy abort list. Everything else is forwarded for the shared-client API (browsing, playback, search, sync).
+Everything else is forwarded for the shared-client API (browsing, playback, search, sync). Where a path carries both a harmless read and a privileged write, the deny is scoped by method rather than dropping the path.
 
 | Rule | Paths | Why |
 |---|---|---|
 | 9530300 | `/` with `Accept: text/html` | Plex 302s browsers to `/web/index.html`; API clients never send `text/html` |
 | 9530310 | `/web` | Plex Web UI bundle (XSS surface, plex.tv auth redirect) |
 | 9530320 | `/myplex`, `/connections` | return the owner token (CVE-2025-69414/69415 class), blocks `/myplex/account` escalation chain |
-| 9530330 | `/:/prefs`, `/updater`, `/transcode/sessions`, `/butler`, `/system/notification`, `/diagnostics`, `/services/browse`, `/log/networked`, `/activities`, `/media/grabbers`, `/servers` | server management |
+| 9530330 | `/:/prefs`, `/updater/check`, `/updater/apply`, `/transcode/sessions`, `/butler`, `/system/notification`, `/diagnostics`, `/services/browse`, `/log/networked`, `/media/grabbers`, `/servers` | server management |
 | 9530340 | `/system/agents` | answers **without a token**; Fix Match search + art fetch |
 | 9530350 | `/system/proxy` | server-side URL fetch (CVE-2014-9304 SSRF) |
 | 9530360 | any path, `X-Plex-Url` header present | the CVE-2014-9304 proxy's target-URL header; no current client sends it, so its presence is a probe |
 | 9530370 | any path containing `..` or `\`, raw or encoded (query string excluded) | no legitimate Plex path has either; closes `/library/../web`-style bypasses for every deny above |
+| 9530380 | `DELETE /activities`, `DELETE /activities/{id}` | cancels a running server task; `GET /activities` (the progress poll every client makes) is allowed |
 
 Deliberately **not** denied, because Plex enforces owner-only or per-account access itself. Verified 2026-09-26 by calling each on localhost with a managed-user token (`admin=0`, one library granted) in the same session as the owner:
 
@@ -131,10 +132,12 @@ Deliberately **not** denied, because Plex enforces owner-only or per-account acc
 | `/accounts` | 403 | History detail (user name) |
 | `/devices` | 403 | History detail (device name) |
 | `/statistics/bandwidth` | 200, empty¹ | Dashboard; per-account filtered |
+| `GET /activities` | 200, empty¹ | progress poll made by Plex Web and desktop clients every session |
+| `GET /updater/status` | 403 | polled by Plex Web every session |
 
 ¹ Empty for the managed user while the owner token, at the same moment, returned data (bandwidth rows; a running library scan). Plex filters these per account.
 
-The owner's mobile app Server section requests `/:/prefs`, `/updater/status` and `/activities` but it appears fully functional without them.
+The owner's mobile app Server section requests `/:/prefs` (denied) and works without it.
 
 The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchors tolerate a trailing `?query` and `/WEB` is caught (Plex on Windows serves `/web` from a case-insensitive filesystem). They do not use a path-normalising transform: on a Windows Coraza build those emit backslashes and a forward-slash regex silently fails open. Traversal is handled by 9530370 instead, which drops any request whose path carries `..` or a backslash, raw or percent-encoded (the query string is not inspected, since search text and log messages legitimately contain both). Denies are phase 1 and issue `drop` directly rather than scoring, which the plugin guidelines permit.
 
