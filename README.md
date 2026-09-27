@@ -1,5 +1,5 @@
-> [!WARNING]
-> **WARNING:** This project is under active development. Changes may occur without notice.
+> [!CAUTION]
+> **CAUTION:** This project is under active development. Changes may occur without notice.
 
 # OWASP CRS - Plex Hardening Plugin
 
