@@ -35,7 +35,7 @@ rule_id_range:
   end: 9530999
 
 compatibility:
-  crs_version: ">=4.0.0"
+  crs_version: ">=4.25.1"
 
 configuration:
   file: "plugins/plex-hardening-config.conf"
