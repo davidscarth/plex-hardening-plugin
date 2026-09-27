@@ -19,7 +19,7 @@ The CRS plugin documentation can be found on the [website](https://coreruleset.o
 
 ## Requirements
 
-- OWASP CRS 4.0 or newer (tested against 4.29.0, PL1)
+- OWASP CRS 4.25.1 or newer (tested against 4.29.0, PL1)
 - ModSecurity 2.9 / 3.x or Coraza v3 (tested with coraza-caddy)
 
 The endpoint denies assume the owner administers Plex on localhost or the LAN, not through the proxied hostname, and that only shared users' clients arrive through the proxy. Read [Endpoint denies](#endpoint-denies) before deploying anywhere that isn't true, or turn them off (see Configuration).
