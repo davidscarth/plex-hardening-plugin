@@ -106,7 +106,7 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 | 9531270 | reconnaissance signal | client-supplied `X-Forwarded-Host` (opt-in, WARNING score) |
 | 9531280 | CVE-2026-96651, Zenofex `metadata-file-read` (allowlist form) | `url=` on `/library/metadata/{id}/file` not a `media://`, `metadata://` or `upload://` reference |
 | 9531290 | any file read of Plex credentials | `Preferences.xml` (holds `PlexOnlineToken`) or `.LocalAdminToken` in the path or any parameter, however the read is delivered |
-| 9531300 | gap left by exclusions 9530110 | `url=` on `/photo/:/transcode` naming `127.0.0.1`, `localhost` or `[::1]` with an explicit port other than 32400 or 443; 9530110 lets loopback URLs past 931100/934110 on any port because clients copy the port they connected on, so another port is a request to a local service that is not Plex |
+| 9531300 | loopback fetch through the photo transcoder (pairs with exclusions 9530110) | `url=` on `/photo/:/transcode` naming `127.0.0.1`, `localhost`, or `[::1]` with an explicit port other than 32400 or 443; 9530110 cannot fix the port because clients copy the one they connected on, so this rule checks it |
 
 9531220 tracks known dangerous settings by shape (`*Flags=`); it is defense-in-depth on a patched CVE, not a substitute for the patch, because Plex's fix is an allowlist whose full contents are not observable from outside.
 
