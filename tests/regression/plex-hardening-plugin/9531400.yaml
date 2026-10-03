@@ -1,0 +1,36 @@
+---
+meta:
+  author: "David Scarth"
+  description: "browser navigation to root"
+rule_id: 9531400
+tests:
+  - test_id: 1
+    desc: "GET / with a browser Accept fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+          port: 80
+          method: GET
+          uri: "/"
+        output:
+          log:
+            expect_ids: [9531400]
+  - test_id: 2
+    desc: "GET / with an API Accept does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: application/xml
+          port: 80
+          method: GET
+          uri: "/"
+        output:
+          log:
+            no_expect_ids: [9531400]

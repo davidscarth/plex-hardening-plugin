@@ -1,0 +1,66 @@
+---
+meta:
+  author: "David Scarth"
+  description: "file:// scheme in url parameter"
+rule_id: 9531200
+tests:
+  - test_id: 1
+    desc: "file:// on metadata file endpoint fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/1234/file?url=file%3A%2F%2F%2Fetc%2Fpasswd"
+        output:
+          log:
+            expect_ids: [9531200]
+  - test_id: 2
+    desc: "file:// on photo transcoder fires (unscoped by design)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=file%3A%2F%2F%2FC%3A%2FWindows%2Fwin.ini&width=1&height=1"
+        output:
+          log:
+            expect_ids: [9531200]
+  - test_id: 3
+    desc: "media:// reference does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/1234/file?url=media%3A%2F%2Fparts%2F5678%2Ffile.mkv"
+        output:
+          log:
+            no_expect_ids: [9531200]
+  - test_id: 4
+    desc: "loopback http thumbnail URL does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F1%2Fthumb%2F1"
+        output:
+          log:
+            no_expect_ids: [9531200]

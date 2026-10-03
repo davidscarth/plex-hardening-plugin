@@ -1,0 +1,246 @@
+---
+meta:
+  author: "David Scarth"
+  description: "write method on a client-polled endpoint (GET, HEAD, OPTIONS allowed, all else denied)"
+rule_id: 9531480
+tests:
+  - test_id: 1
+    desc: "DELETE /activities/{id} fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/activities/2d1c6a7e-4b3f-4c1e-9a8d-0f1e2d3c4b5a"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 2
+    desc: "POST /activities fires (no such Plex verb; deny anyway)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/activities"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 3
+    desc: "PUT /activities/{id} fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/activities/2d1c6a7e?X-Plex-Token=abc"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 4
+    desc: "DELETE /transcode/sessions/{id} fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/transcode/sessions/5868891f7ff8c8a0-com-plexapp-android"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 5
+    desc: "PATCH /transcode/sessions/{id} fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PATCH
+          uri: "/transcode/sessions/abc"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 6
+    desc: "PUT /updater/status fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/updater/status"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 7
+    desc: "OPTIONS /activities does not fire (CORS preflight; PMS answers with headers only)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: OPTIONS
+          uri: "/activities"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 8
+    desc: "GET /activities does not fire (progress poll)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/activities?X-Plex-Product=Plex%20Web"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 9
+    desc: "GET /activities/{id} does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/activities/2d1c6a7e"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 10
+    desc: "GET /transcode/sessions/{id} does not fire (own status poll)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/transcode/sessions/5868891f7ff8c8a0-com-plexapp-android?X-Plex-Language=es-ar"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 11
+    desc: "GET /updater/status does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/updater/status?X-Plex-Product=Plex%20Web"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 12
+    desc: "DELETE elsewhere does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/playlists/123"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 13
+    desc: "DELETE on the bare /transcode/sessions list is not this rule (9531430 covers it)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: DELETE
+          uri: "/transcode/sessions"
+        output:
+          log:
+            no_expect_ids: [9531480]
+  - test_id: 14
+    desc: "POST /activities/ with trailing slash fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/activities/"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 15
+    desc: "PUT /updater/status/ with trailing slash fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/updater/status/"
+        output:
+          log:
+            expect_ids: [9531480]
+  - test_id: 16
+    desc: "HEAD /activities does not fire (bodiless GET; health probes)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: HEAD
+          uri: "/activities"
+        output:
+          log:
+            no_expect_ids: [9531480]

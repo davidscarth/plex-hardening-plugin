@@ -1,0 +1,157 @@
+---
+meta:
+  author: "David Scarth"
+  description: "server-path or outbound-URL input on an owner-only endpoint (POST/PUT denied; GET and sibling client paths pass)"
+# no lowercase case: nginx returns 400
+rule_id: 9531490
+tests:
+  - test_id: 1
+    desc: "create library with a server path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/library/sections/all?name=x&type=1&agent=tv.plex.agents.movie&scanner=Plex%20Movie&language=en-US&locations%5B%5D=C%3A%5C"
+        output:
+          log:
+            expect_ids: [9531490]
+  - test_id: 2
+    desc: "edit library locations fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/library/sections/1?locations%5B%5D=C%3A%5CUsers"
+        output:
+          log:
+            expect_ids: [9531490]
+  - test_id: 3
+    desc: "playlist import from a server path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/playlists/upload?sectionID=1&path=%2Fhome%2Fbarkley%2Fplaylist.m3u"
+        output:
+          log:
+            expect_ids: [9531490]
+  - test_id: 4
+    desc: "register a media provider URL fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/media/providers?url=http%3A%2F%2F10.0.0.5%3A8080%2F"
+        output:
+          log:
+            expect_ids: [9531490]
+  - test_id: 5
+    desc: "GET on the create path is a client read, passes"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections/all"
+        output:
+          log:
+            no_expect_ids: [9531490]
+  - test_id: 6
+    desc: "GET section details is a client read, passes"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections/1"
+        output:
+          log:
+            no_expect_ids: [9531490]
+  - test_id: 7
+    desc: "bulk field edit on /{id}/all is not the edit-section path, passes"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/library/sections/1/all?type=1&title.value=x"
+        output:
+          log:
+            no_expect_ids: [9531490]
+  - test_id: 8
+    desc: "scan trigger (owner from any client) passes"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/library/sections/1/refresh"
+        output:
+          log:
+            no_expect_ids: [9531490]
+  - test_id: 9
+    desc: "playlist create from a client passes"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/playlists?type=video&title=t&smart=0&uri=server%3A%2F%2Fabc%2Fcom.plexapp.plugins.library%2Flibrary%2Fmetadata%2F1"
+        output:
+          log:
+            no_expect_ids: [9531490]
+  - test_id: 10
+    desc: "provider list is a client read, passes"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/media/providers"
+        output:
+          log:
+            no_expect_ids: [9531490]

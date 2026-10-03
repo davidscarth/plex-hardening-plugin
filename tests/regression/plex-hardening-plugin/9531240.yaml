@@ -1,0 +1,96 @@
+---
+meta:
+  author: "David Scarth"
+  description: "non-http(s) protocol on Companion subscribe (CVE-2026-96652)"
+rule_id: 9531240
+tests:
+  - test_id: 1
+    desc: "gopher protocol fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=gopher&port=32400&commandID=1"
+        output:
+          log:
+            expect_ids: [9531240]
+  - test_id: 2
+    desc: "Full URL in protocol= fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http%3A%2F%2F169.254.169.254%2F&port=80&commandID=1"
+        output:
+          log:
+            expect_ids: [9531240]
+  - test_id: 3
+    desc: "protocol=http does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http&port=32500&commandID=1"
+        output:
+          log:
+            no_expect_ids: [9531240]
+  - test_id: 4
+    desc: "protocol=HTTPS does not fire (lowercased)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=HTTPS&port=32500&commandID=1"
+        output:
+          log:
+            no_expect_ids: [9531240]
+  - test_id: 5
+    desc: "protocol=dash on the transcoder is out of scope"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/start.m3u8?protocol=dash&path=%2Flibrary%2Fmetadata%2F1"
+        output:
+          log:
+            no_expect_ids: [9531240]
+  - test_id: 6
+    desc: "repeated slashes in the path (no normalising transform) still reach the rule"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "//player/timeline/subscribe?protocol=gopher&port=1"
+        output:
+          log:
+            expect_ids: [9531240]

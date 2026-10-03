@@ -1,0 +1,51 @@
+---
+meta:
+  author: "David Scarth"
+  description: "server-side proxy endpoint deny (CVE-2014-9304)"
+rule_id: 9531450
+tests:
+  - test_id: 1
+    desc: "/system/proxy fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/proxy?url=http%3A%2F%2F169.254.169.254%2F"
+        output:
+          log:
+            expect_ids: [9531450]
+  - test_id: 2
+    desc: "/system/proxy/ subpath fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/system/proxy/"
+        output:
+          log:
+            expect_ids: [9531450]
+  - test_id: 3
+    desc: "/system/proxyfoo prefix lookalike is not matched"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/proxyfoo"
+        output:
+          log:
+            no_expect_ids: [9531450]

@@ -1,0 +1,231 @@
+---
+meta:
+  author: "David Scarth"
+  description: "server management endpoints deny"
+rule_id: 9531430
+tests:
+  - test_id: 1
+    desc: "/:/prefs fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/:/prefs"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 2
+    desc: "/updater/check fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/updater/check"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 3
+    desc: "/updater/apply fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: PUT
+          uri: "/updater/apply?tonight=1"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 4
+    desc: "/system/notification exact fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/notification"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 5
+    desc: "Bare /transcode/sessions list fires (no client calls the collection)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/transcode/sessions"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 6
+    desc: "Query string after a denied path still fires (REQUEST_URI anchor)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/:/prefs?X-Plex-Token=abc"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 7
+    desc: "GET /updater/status is allowed (polled by Plex Web; 403 from Plex to shared tokens)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/updater/status?X-Plex-Product=Plex%20Web"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 8
+    desc: "GET /activities is allowed (progress poll; per-account filtered by Plex)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/activities?X-Plex-Product=Plex%20Web"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 9
+    desc: "Shared-client path /library/sections does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 10
+    desc: "Deliberately exposed /status/sessions does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/status/sessions"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 11
+    desc: "Deliberately exposed /statistics/bandwidth does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/statistics/bandwidth"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 12
+    desc: "Prefix lookalike /serversomething is not matched"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/serversomething"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 13
+    desc: "GET /transcode/sessions/{id} is allowed (a client polling its own transcode; observed on Android TV)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/transcode/sessions/5868891f7ff8c8a0-com-plexapp-android?X-Plex-Language=es-ar"
+        output:
+          log:
+            no_expect_ids: [9531430]
+  - test_id: 14
+    desc: "/system/notification/ with trailing slash fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/notification/"
+        output:
+          log:
+            expect_ids: [9531430]
+  - test_id: 15
+    desc: "/transcode/sessions/ with trailing slash (collection) fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/transcode/sessions/"
+        output:
+          log:
+            expect_ids: [9531430]

@@ -1,0 +1,37 @@
+---
+meta:
+  author: "David Scarth"
+  description: "scope gate: with _hosts unset the plugin applies to every host"
+# no unlisted-host case: needs _hosts
+rule_id: 9531096
+tests:
+  - test_id: 1
+    desc: "Listed host: plugin applies (deny fires)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/agents"
+        output:
+          log:
+            expect_ids: [9531440]
+  - test_id: 2
+    desc: "Listed host, different case and a port: still applies (case-insensitive, port stripped)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: LOCALHOST:8080
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/agents"
+        output:
+          log:
+            expect_ids: [9531440]

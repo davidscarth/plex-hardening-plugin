@@ -1,0 +1,126 @@
+---
+meta:
+  author: "David Scarth"
+  description: "traversal or backslash in the request path (guard for the endpoint denies)"
+rule_id: 9531470
+tests:
+  - test_id: 1
+    desc: "Raw .. traversal in the path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/../web/index.html"
+        output:
+          log:
+            expect_ids: [9531470]
+  - test_id: 2
+    desc: "Percent-encoded traversal fires after urlDecodeUni"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/%2e%2e/web/index.html"
+        output:
+          log:
+            expect_ids: [9531470]
+  - test_id: 3
+    desc: "Encoded backslash in the path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/web%5c..%5cindex.html"
+        output:
+          log:
+            expect_ids: [9531470]
+  - test_id: 4
+    desc: "Ordinary Plex path with dots in a filename does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/parts/80479/1521182068/file.mkv"
+        output:
+          log:
+            no_expect_ids: [9531470]
+  - test_id: 5
+    desc: "Provider-prefixed search path with colon does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/tv.plex.providers.epg.cloud:10/library/search?query=a.b"
+        output:
+          log:
+            no_expect_ids: [9531470]
+  - test_id: 6
+    desc: "Ellipsis in search text (query string) does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/search?query=...And%20Justice%20for%20All"
+        output:
+          log:
+            no_expect_ids: [9531470]
+  - test_id: 7
+    desc: "Windows path in a client log message (query string) does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/log?level=3&source=Player&message=C%3A%5CUsers%5Cplex%5Cvideo.mkv"
+        output:
+          log:
+            no_expect_ids: [9531470]
+  - test_id: 8
+    desc: "Traversal in a query value is left to the phase-2 rules, not this guard"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/1/file?url=media%3A%2F%2F..%2F..%2FPreferences.xml"
+        output:
+          log:
+            no_expect_ids: [9531470]

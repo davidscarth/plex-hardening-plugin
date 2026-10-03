@@ -1,0 +1,38 @@
+---
+meta:
+  author: "David Scarth"
+  description: "X-Forwarded-Host tripwire: off by default, does not fire"
+# no positive case: tripwire is off
+rule_id: 9531270
+tests:
+  - test_id: 1
+    desc: "No X-Forwarded-Host does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections"
+        output:
+          log:
+            no_expect_ids: [9531270]
+  - test_id: 2
+    desc: "X-Forwarded-For alone does not fire (deliberately not matched)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+            X-Forwarded-For: 203.0.113.9
+          port: 80
+          method: GET
+          uri: "/library/sections"
+        output:
+          log:
+            no_expect_ids: [9531270]

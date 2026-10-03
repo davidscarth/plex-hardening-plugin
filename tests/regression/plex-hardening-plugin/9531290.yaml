@@ -1,0 +1,111 @@
+---
+meta:
+  author: "David Scarth"
+  description: "reference to a Plex secrets file (Preferences.xml, .LocalAdminToken) in the path or any parameter"
+rule_id: 9531290
+tests:
+  - test_id: 1
+    desc: "Preferences.xml as an absolute file: URL in url="
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/1/file?url=file%3A%2F%2F%2Fvar%2Flib%2Fplexmediaserver%2FLibrary%2FApplication%20Support%2FPlex%20Media%20Server%2FPreferences.xml"
+        output:
+          log:
+            expect_ids: [9531290]
+  - test_id: 2
+    desc: ".LocalAdminToken via traversal in a media: reference on another endpoint"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=media%3A%2F%2Fx%2F..%2F..%2F.LocalAdminToken"
+        output:
+          log:
+            expect_ids: [9531290]
+  - test_id: 3
+    desc: "Windows backslash path to .LocalAdminToken in path="
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/video/:/transcode/universal/decision?path=C%3A%5CUsers%5Cx%5CAppData%5CLocal%5CPlex%20Media%20Server%5C.LocalAdminToken"
+        output:
+          log:
+            expect_ids: [9531290]
+  - test_id: 4
+    desc: "Preferences.xml in the URL path, upper case"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/parts/1/2/PREFERENCES.XML"
+        output:
+          log:
+            expect_ids: [9531290]
+  - test_id: 5
+    desc: "Double-encoded name (dot as %252E) is decoded by t:urlDecodeUni and still fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=%252Fconfig%252FPreferences%252Exml"
+        output:
+          log:
+            expect_ids: [9531290]
+  - test_id: 6
+    desc: "The word preferences without .xml does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/metadata/1?includePreferences=1"
+        output:
+          log:
+            no_expect_ids: [9531290]
+  - test_id: 7
+    desc: "Ordinary library request does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections/1/all?type=1&title=Notes"
+        output:
+          log:
+            no_expect_ids: [9531290]
