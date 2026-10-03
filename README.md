@@ -67,7 +67,7 @@ Defaults are set in the before-file and only apply when the variable is not alre
 
 ### Scoping to Plex on a shared WAF
 
-The plugin sees every request the WAF sees. On a WAF dedicated to Plex that is correct and `tx.plex-hardening-plugin_hosts` stays unset, whether Plex is reached by domain, dynamic-DNS name or bare IP. On a WAF pipeline shared with other applications, leaving it unset applies the endpoint denies to the neighbours too (their `/` and `/web/` get dropped), so set it to the least specific entry that tells Plex apart: `/plex.example.com/` when apps differ by hostname; `/plex.example.com:8443/` or `/203.0.113.5:8443/` when they differ by port on a fixed name or address; `/:8443/` when they differ by port on a dynamic IP with no names. Names match case-insensitively; IPv6 literals keep their brackets, `/[2001:db8::1]/`. A wrong value silently disables the plugin for Plex, which is why unset is the default: its failure mode is loud (denies on the wrong hostname in the log).
+The plugin sees every request the WAF sees. On a WAF dedicated to Plex that is correct and `tx.plex-hardening-plugin_hosts` stays unset, whether Plex is reached by domain, dynamic-DNS name or bare IP. On a WAF pipeline shared with other applications, leaving it unset applies the endpoint denies to the neighbors too (their `/` and `/web/` get dropped), so set it to the least specific entry that tells Plex apart: `/plex.example.com/` when apps differ by hostname; `/plex.example.com:8443/` or `/203.0.113.5:8443/` when they differ by port on a fixed name or address; `/:8443/` when they differ by port on a dynamic IP with no names. Names match case-insensitively; IPv6 literals keep their brackets, `/[2001:db8::1]/`. A wrong value silently disables the plugin for Plex, which is why unset is the default: its failure mode is loud (denies on the wrong hostname in the log).
 
 Endpoint denies use `drop`. To return a 403 instead, add to an after-file:
 
@@ -77,7 +77,7 @@ SecRuleUpdateActionById 9531400-9531499 "deny,status:403"
 
 ## Rule ID map
 
-The plugin uses the allocated block **9531000-9531999**, laid out per the template convention (000-099 initialisation, 100-499 request rules, 500-999 response rules):
+The plugin uses the allocated block **9531000-9531999**, laid out per the template convention (000-099 initialization, 100-499 request rules, 500-999 response rules):
 
 | Range | Purpose |
 |---|---|
@@ -108,9 +108,9 @@ The plugin uses the allocated block **9531000-9531999**, laid out per the templa
 | 9531280 | CVE-2026-96651, Zenofex `metadata-file-read` (allowlist form) | `url=` on `/library/metadata/{id}/file` not a `media://`, `metadata://` or `upload://` reference |
 | 9531290 | any file read of Plex credentials | `Preferences.xml` (holds `PlexOnlineToken`) or `.LocalAdminToken` in the path or any parameter, however the read is delivered |
 
-9531220 tracks known dangerous settings by shape (`*Flags=`); it is defence-in-depth on a patched CVE, not a substitute for the patch, because Plex's fix is an allowlist whose full contents are not observable from outside.
+9531220 tracks known dangerous settings by shape (`*Flags=`); it is defense-in-depth on a patched CVE, not a substitute for the patch, because Plex's fix is an allowlist whose full contents are not observable from outside.
 
-Detection rules run in phase 2, score CRITICAL into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialisation in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
+Detection rules run in phase 2, score CRITICAL into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialization in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
 
 The endpoint denies ran as reverse-proxy rules before being converted. 9531200 and 9531220 ran in production as standalone rules during and after a 2026 shared-user token compromise. The remaining detection rules (9531230-9531290) were written from the Zenofex findings and Plex's fix strings and confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. On 9531280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
 
@@ -147,12 +147,12 @@ Deliberately **not** denied, because Plex enforces owner-only or per-account acc
 
 The owner's mobile app Server section requests `/:/prefs` (denied) and works without it.
 
-The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchors tolerate a trailing `?query` and `/WEB` is caught (Plex on Windows serves `/web` from a case-insensitive filesystem). They do not use a path-normalising transform: on a Windows Coraza build those emit backslashes and a forward-slash regex silently fails open. Traversal is handled by 9531470 instead, which drops any request whose path carries `..` or a backslash, raw or percent-encoded (the query string is not inspected, since search text and log messages legitimately contain both). Denies are phase 1 and issue `drop` directly rather than scoring, which the plugin guidelines permit.
+The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchors tolerate a trailing `?query` and `/WEB` is caught (Plex on Windows serves `/web` from a case-insensitive filesystem). They do not use a path-normalizing transform: on a Windows Coraza build those emit backslashes and a forward-slash regex silently fails open. Traversal is handled by 9531470 instead, which drops any request whose path carries `..` or a backslash, raw or percent-encoded (the query string is not inspected, since search text and log messages legitimately contain both). Denies are phase 1 and issue `drop` directly rather than scoring, which the plugin guidelines permit.
 
 ## Interactions
 
 - **Exclusions vs. detection:** plex-rule-exclusions-plugin removes `ARGS:X-Plex-Client-Profile-Extra` from 932235/932370 (9530100) and `ARGS:url` from 931100/934110 (9530110) only. Detection rules 9531200 and 9531220 here still inspect those targets.
-- **Coraza:** all regexes are RE2-compatible (no lookaround or backreferences); no persistent collections are used. Do not add a path-normalising transform to the endpoint denies (see Endpoint denies). Check how your Coraza connector maps `drop`, or use the `SecRuleUpdateActionById` line above.
+- **Coraza:** all regexes are RE2-compatible (no lookaround or backreferences); no persistent collections are used. Do not add a path-normalizing transform to the endpoint denies (see Endpoint denies). Check how your Coraza connector maps `drop`, or use the `SecRuleUpdateActionById` line above.
 - **Tags:** the plugin's rules carry `plex-hardening-plugin` (and `plex-hardening-plugin/endpoint-deny` on the denies), not `OWASP_CRS`. A tag-wide exclusion such as `ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS` therefore leaves this plugin's rules active on that path - intended, so a broad CRS exclusion on an unrelated application does not silently switch off Plex protection. To exclude the plugin's rules on a path, target the plugin's own tag or its ID range: `ctl:ruleRemoveByTag=plex-hardening-plugin` or `ctl:ruleRemoveById=9531100-9531999`.
 
 ## What the owner can and cannot do through the proxy
