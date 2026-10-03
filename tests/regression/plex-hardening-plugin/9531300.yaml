@@ -1,7 +1,7 @@
 ---
 meta:
   author: "David Scarth"
-  description: "loopback URL on a non-Plex port in the photo transcoder (gap left by exclusions 9530110)"
+  description: "loopback fetch through the photo transcoder on a non-Plex port (pairs with exclusions 9530110)"
 rule_id: 9531300
 tests:
   - test_id: 1
