@@ -13,7 +13,7 @@ The plugin has two parts:
 - **Detection rules** (9531200-9531399) cover Plex-specific attack classes that pass CRS at PL1: CVE-2026-96651, -96652, -96654, -96655, -96656 and the Zenofex `Plex_Vuln_PoCs` findings.
 - **Endpoint denies** (9531400-9531499, on by default) drop owner-only management operations that a shared user's client never performs. Three endpoints that clients do poll routinely are split by method: `GET /activities`, `GET /updater/status` and `GET /transcode/sessions/{id}` are allowed and every other verb on those paths is denied; `/updater/check|apply` and the bare `/transcode/sessions` list are denied outright.
 
-The CRS plugin documentation can be found on the [website](https://coreruleset.org/docs/configuring/plugins/).
+The CRS plugin documentation can be found on the [website](https://coreruleset.org/docs/4-about-plugins/4-1-plugins/)
 
 ## Requirements
 
