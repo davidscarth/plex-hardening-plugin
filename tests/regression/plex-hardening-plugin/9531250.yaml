@@ -98,7 +98,7 @@ tests:
           log:
             no_expect_ids: [9531250]
   - test_id: 7
-    desc: "repeated slashes in the path (no normalising transform) still reach the rule"
+    desc: "repeated slashes in the path (no normalizing transform) still reach the rule"
     stages:
       - input:
           dest_addr: 127.0.0.1
