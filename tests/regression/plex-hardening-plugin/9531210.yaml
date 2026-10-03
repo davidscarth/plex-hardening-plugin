@@ -1,7 +1,7 @@
 ---
 meta:
   author: "David Scarth"
-  description: "traversal inside media:// on metadata file endpoint"
+  description: "traversal in url= on /library/metadata/{id}/file"
 rule_id: 9531210
 tests:
   - test_id: 1

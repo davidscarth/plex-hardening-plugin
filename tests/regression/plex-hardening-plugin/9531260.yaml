@@ -2,8 +2,8 @@
 meta:
   author: "David Scarth"
   description: "path characters in agent identifier (CVE-2026-96654)"
-# 9531440 (phase 1) also fires on this path. The CI harness is DetectionOnly, so
-# nothing interrupts and both IDs are logged; in blocking mode (production)
+# 9531440 (phase 1) also fires on this path. The CI harness is DetectionOnly,
+# so nothing interrupts and both IDs are logged; in blocking mode (production)
 # the request is dropped in phase 1 and only 9531440 is observable.
 rule_id: 9531260
 tests:

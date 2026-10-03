@@ -11,9 +11,9 @@ Hardening for [Plex Media Server](https://www.plex.tv/) behind an OWASP CRS 4.x 
 The plugin has two parts:
 
 - **Detection rules** (9531200-9531399) cover Plex-specific attack classes that pass CRS at PL1: CVE-2026-96651, -96652, -96654, -96655, -96656 and the Zenofex `Plex_Vuln_PoCs` findings.
-- **Endpoint denies** (9531400-9531499, on by default) drop owner-only management operations that a shared user's client never performs. Three endpoints that clients do poll routinely are split by method: `GET /activities`, `GET /updater/status` and `GET /transcode/sessions/{id}` are allowed and every other verb on those paths is denied; `/updater/check|apply` and the bare `/transcode/sessions` list are denied outright.
+- **Endpoint denies** (9531400-9531499, on by default) drop owner-only management operations that a shared user's client never performs. Three endpoints that clients do poll routinely are split by method: `GET /activities`, `GET /updater/status` and `GET /transcode/sessions/{id}` are allowed and every verb other than `GET`, `HEAD` or `OPTIONS` on those paths is denied; `/updater/check|apply` and the bare `/transcode/sessions` list are denied outright.
 
-The CRS plugin documentation can be found on the [website](https://coreruleset.org/docs/4-about-plugins/4-1-plugins/)
+The CRS plugin documentation can be found on the [website](https://coreruleset.org/docs/4-about-plugins/4-1-plugins/).
 
 ## Requirements
 
@@ -95,11 +95,11 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 | Rule | Covers | Trigger |
 |---|---|---|
 | 9531200 | CVE-2026-96651, Zenofex `metadata-file-read` | `file:` scheme in `ARGS:url` (any endpoint) |
-| 9531210 | observed attack signature | traversal inside `url=media://…` on `/library/metadata/{id}/file` (backstop to 930100) |
+| 9531210 | observed attack signature | traversal in `url=` on `/library/metadata/{id}/file` (backstop to 930100) |
 | 9531220 | Zenofex `profile-extra-rce` | any `*Flags=` setting in `X-Plex-Client-Profile-Extra`, header or query |
-| 9531230 | CVE-2026-96655 | any URL scheme or protocol-relative `//host` in transcoder `path=` (clients send library references only) |
+| 9531230 | CVE-2026-96655 | any `scheme:/` or `//host` in transcoder `path=` (clients send library references only) |
 | 9531240 | CVE-2026-96652, Zenofex `companion-proxy-ssrf` | `protocol=` on `/player/timeline/subscribe` not `http`/`https` |
-| 9531250 | CVE-2026-96656, Zenofex `network-transcoder-preference`, `legacy-pth-rce` | path separator or line break in `Transcoder*Options*` on `/:/prefs`, catching any file-naming x264 option (backstop; endpoint is denied by default) |
+| 9531250 | CVE-2026-96656, Zenofex `network-transcoder-preference`, `legacy-pth-rce` | path separator or line break in `Transcoder*Options` or `Transcoder*OptionsOverride` on `/:/prefs`, catching any file-naming x264 option (backstop; endpoint is denied by default) |
 | 9531260 | CVE-2026-96654, Zenofex `framework-rpc-injection`, `legacy-pth-rce` | `/`, `\` or `#` in `identifier=` under `/system/agents/` (backstop) |
 | 9531270 | reconnaissance signal | client-supplied `X-Forwarded-Host` (opt-in, WARNING score) |
 | 9531280 | CVE-2026-96651, Zenofex `metadata-file-read` (allowlist form) | `url=` on `/library/metadata/{id}/file` not a `media://`, `metadata://` or `upload://` reference |
@@ -107,7 +107,7 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 
 9531220 tracks known dangerous settings by shape (`*Flags=`); it is defense-in-depth on a patched CVE, not a substitute for the patch, because Plex's fix is an allowlist whose full contents are not observable from outside.
 
-Detection rules run in phase 2, score CRITICAL into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialization in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
+Detection rules run in phase 2, score CRITICAL (9531270: WARNING) into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialization in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
 
 The endpoint denies ran as reverse-proxy rules before being converted. 9531200 and 9531220 ran in production as standalone rules during and after a 2026 shared-user token compromise. The remaining detection rules (9531230-9531280) were written from the Zenofex findings and Plex's fix strings and confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. 9531290 matches the credential files themselves, however a read is delivered. On 9531280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
 
@@ -135,16 +135,16 @@ Deliberately **not** denied, because Plex enforces owner-only or per-account acc
 | `/status/sessions` | 403 | Now Playing / History |
 | `/accounts` | 403 | History detail (user name) |
 | `/devices` | 403 | History detail (device name) |
-| `/statistics/bandwidth` | 200, empty¹ | Dashboard; per-account filtered |
-| `GET /activities` | 200, empty¹ | progress poll made by Plex Web and desktop clients every session |
+| `/statistics/bandwidth` | 200, empty [1] | Dashboard; per-account filtered |
+| `GET /activities` | 200, empty [1] | progress poll made by Plex Web and desktop clients every session |
 | `GET /updater/status` | 403 | polled by Plex Web every session |
-| `GET /transcode/sessions/{id}` | — | a client's own transcode status; polled during playback by Android TV. The bare `/transcode/sessions` list stays denied: no client has been observed calling it |
+| `GET /transcode/sessions/{id}` | n/a | a client's own transcode status; polled during playback by Android TV. The bare `/transcode/sessions` list stays denied: no client has been observed calling it |
 
-¹ Empty for the managed user while the owner token, at the same moment, returned data (bandwidth rows; a running library scan). Plex filters these per account.
+[1] Empty for the managed user while the owner token, at the same moment, returned data (bandwidth rows; a running library scan). Plex filters these per account.
 
 The owner's mobile app Server section requests `/:/prefs` (denied) and works without it.
 
-The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchors tolerate a trailing `?query` and `/WEB` is caught (Plex on Windows serves `/web` from a case-insensitive filesystem). They do not use a path-normalizing transform: on a Windows Coraza build those emit backslashes and a forward-slash regex silently fails open. Traversal is handled by 9531470 instead, which drops any request whose path carries `..` or a backslash, raw or percent-encoded (the query string is not inspected, since search text and log messages legitimately contain both). Denies are phase 1 and issue `drop` directly rather than scoring, which the plugin guidelines permit.
+The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchors tolerate a trailing `?query` and `/WEB` is caught (Plex on Windows serves `/web` from a case-insensitive filesystem). They do not use a path-normalizing transform: on a Windows Coraza build those emit backslashes and a forward-slash regex silently fails open. Traversal is handled by 9531470 instead, which drops any request whose path carries `..`, a backslash or a `/./` segment, raw or percent-encoded (the query string is not inspected, since search text and log messages legitimately contain both). Denies are phase 1 and issue `drop` directly rather than scoring, which the plugin guidelines permit.
 
 ## Interactions
 

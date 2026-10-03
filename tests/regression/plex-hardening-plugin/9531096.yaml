@@ -6,7 +6,7 @@ meta:
 rule_id: 9531096
 tests:
   - test_id: 1
-    desc: "Listed host: plugin applies (deny fires)"
+    desc: "_hosts unset: plugin applies (deny fires)"
     stages:
       - input:
           dest_addr: 127.0.0.1
@@ -21,7 +21,7 @@ tests:
           log:
             expect_ids: [9531440]
   - test_id: 2
-    desc: "Listed host, different case and a port: still applies (case-insensitive, port stripped)"
+    desc: "_hosts unset: odd-case Host with port still gets the plugin"
     stages:
       - input:
           dest_addr: 127.0.0.1

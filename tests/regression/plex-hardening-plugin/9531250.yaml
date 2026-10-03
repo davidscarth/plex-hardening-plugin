@@ -2,8 +2,8 @@
 meta:
   author: "David Scarth"
   description: "file path in transcoder preference (CVE-2026-96656)"
-# 9531430 (phase 1) also fires on this path. The CI harness is DetectionOnly, so
-# nothing interrupts and both IDs are logged; in blocking mode (production)
+# 9531430 (phase 1) also fires on this path. The CI harness is DetectionOnly,
+# so nothing interrupts and both IDs are logged; in blocking mode (production)
 # the request is dropped in phase 1 and only 9531430 is observable.
 rule_id: 9531250
 tests:
