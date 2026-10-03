@@ -94,3 +94,18 @@ tests:
         output:
           log:
             expect_ids: [9531240]
+  - test_id: 7
+    desc: "trailing slash on the endpoint path still reaches the rule"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe/?protocol=gopher&port=32400&commandID=1"
+        output:
+          log:
+            expect_ids: [9531240]

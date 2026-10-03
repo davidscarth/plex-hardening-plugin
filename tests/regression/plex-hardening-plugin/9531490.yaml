@@ -155,3 +155,18 @@ tests:
         output:
           log:
             no_expect_ids: [9531490]
+  - test_id: 11
+    desc: "trailing slash on the endpoint path still reaches the rule"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: POST
+          uri: "/library/sections/all/?name=x&type=1&agent=tv.plex.agents.movie&scanner=Plex%20Movie&language=en-US&locations%5B%5D=C%3A%5C"
+        output:
+          log:
+            expect_ids: [9531490]

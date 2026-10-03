@@ -124,3 +124,78 @@ tests:
         output:
           log:
             no_expect_ids: [9531470]
+  - test_id: 9
+    desc: "Single-dot segment mid-path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/./notification"
+        output:
+          log:
+            expect_ids: [9531470]
+  - test_id: 10
+    desc: "Percent-encoded single-dot segment fires after urlDecodeUni"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/system/%2e/notification"
+        output:
+          log:
+            expect_ids: [9531470]
+  - test_id: 11
+    desc: "Single-dot segment at the end of the path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections/."
+        output:
+          log:
+            expect_ids: [9531470]
+  - test_id: 12
+    desc: "Dot-prefixed segment name is not a dot segment and does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/parts/1/2/.file.mkv"
+        output:
+          log:
+            no_expect_ids: [9531470]
+  - test_id: 13
+    desc: "single-dot segment directly before the query string fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections/all/.?x=1"
+        output:
+          log:
+            expect_ids: [9531470]
