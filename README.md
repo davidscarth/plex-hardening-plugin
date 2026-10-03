@@ -1,6 +1,3 @@
-> [!WARNING]
-> **WARNING:** This project is under active development. Changes may occur without notice.
-
 # OWASP CRS - Plex Hardening Plugin
 
 ![Integration tests](https://github.com/davidscarth/plex-hardening-plugin/actions/workflows/integration.yml/badge.svg) ![Plugin lint](https://github.com/davidscarth/plex-hardening-plugin/actions/workflows/lint.yml/badge.svg)
@@ -52,7 +49,7 @@ SecAction "id:900200,phase:1,pass,t:none,nolog,setvar:'tx.allowed_methods=GET HE
 
 or not load `REQUEST-911-METHOD-ENFORCEMENT.conf` at all and enforce method
 policy in front of the WAF (for example a Caddy `method` matcher with `abort`).
-The CI harness keeps CRS's default method list, so the plugin tests avoid `PUT`/`DELETE`.
+The CI harness keeps CRS's default method list; tests that send `PUT` or `DELETE` assert only this plugin's rule IDs, so 911100 firing alongside does not affect them.
 
 ## Configuration
 
@@ -77,15 +74,15 @@ SecRuleUpdateActionById 9531400-9531499 "deny,status:403"
 
 ## Rule ID map
 
-The plugin uses the allocated block **9531000-9531999**, laid out per the template convention (000-099 initialization, 100-499 request rules, 500-999 response rules):
+The plugin uses the allocated block **9531000-9531999**, laid out per convention (000-099 initialization, 100-499 request rules, 500-999 response rules):
 
 | Range | Purpose |
 |---|---|
 | `9531010` | Plugin disable switch (commented, in config) |
 | `9531020`-`9531021`, `9531023` | Config-knob `SecAction`s (commented, in config) |
 | `9531022` | Trusted-source allowlist rule (commented, in config) |
-| `9531089`-`9531093`, `9531096` | Scope flag default, tokens, flag, and gate (in before) |
 | `9531030`-`9531031` | Default-value setters (in before) |
+| `9531089`-`9531093`, `9531096` | Scope flag default, tokens, flag, and gate (in before) |
 | `9531098` | Endpoint-deny sub-gate (removes 9531400-9531499) |
 | `9531099` | Plugin gate (removes 9531100-9531999) |
 | `9531100`-`9531199` | Unassigned. The companion plex-rule-exclusions-plugin keeps its exclusions at 9530100-9530199, so the two plugins merge by suffix |
@@ -112,7 +109,7 @@ The plugin uses the allocated block **9531000-9531999**, laid out per the templa
 
 Detection rules run in phase 2, score CRITICAL into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialization in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
 
-The endpoint denies ran as reverse-proxy rules before being converted. 9531200 and 9531220 ran in production as standalone rules during and after a 2026 shared-user token compromise. The remaining detection rules (9531230-9531290) were written from the Zenofex findings and Plex's fix strings and confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. On 9531280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
+The endpoint denies ran as reverse-proxy rules before being converted. 9531200 and 9531220 ran in production as standalone rules during and after a 2026 shared-user token compromise. The remaining detection rules (9531230-9531280) were written from the Zenofex findings and Plex's fix strings and confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. 9531290 matches the credential files themselves, however a read is delivered. On 9531280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
 
 ## Endpoint denies
 
@@ -127,7 +124,7 @@ Everything else is forwarded for the shared-client API (browsing, playback, sear
 | 9531440 | `/system/agents` | answers **without a token**; Fix Match search + art fetch |
 | 9531450 | `/system/proxy` | server-side URL fetch (CVE-2014-9304 SSRF) |
 | 9531460 | any path, `X-Plex-Url` header present | the CVE-2014-9304 proxy's target-URL header; no current client sends it, so its presence is a probe |
-| 9531470 | any path containing `..` or `\`, raw or encoded (query string excluded) | no legitimate Plex path has either; closes `/library/../web`-style bypasses for every deny above |
+| 9531470 | any path containing `..`, `\` or a `/./` segment, raw or encoded (query string excluded) | no legitimate Plex path has any of these; closes `/library/../web`-style bypasses for every deny above |
 | 9531480 | any method other than `GET`, `HEAD` or `OPTIONS` on `/activities[/{id}]`, `/transcode/sessions/{id}`, `/updater/status` | these paths are read by ordinary clients (progress poll, own-session poll, update state) so they are not path-denied; their owner-only writes (`DELETE` cancels a task or kills a transcode) and any other verb are denied. Plex defines no other verbs here and none has been observed; HEAD is allowed as a bodiless GET for health probes; OPTIONS because PMS answers it with CORS headers only and a browser preflight must not be dropped |
 | 9531490 | `POST`/`PUT` on `/library/sections/all`, `/library/sections/{id}`, `/playlists/upload`, `/media/providers` | these take a server filesystem path (`locations[]`, `path`) or a URL the server reverse-proxies (`url`), the input shape behind every real Plex CVE; no client calls them; `GET` on the same paths is ordinary client traffic and passes; `/{id}/refresh`, `/{id}/all` and `POST /playlists` stay open |
 
@@ -151,7 +148,7 @@ The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchor
 
 ## Interactions
 
-- **Exclusions vs. detection:** plex-rule-exclusions-plugin removes `ARGS:X-Plex-Client-Profile-Extra` from 932235/932370 (9530100) and `ARGS:url` from 931100/934110 (9530110) only. Detection rules 9531200 and 9531220 here still inspect those targets.
+- **Exclusions vs. detection:** plex-rule-exclusions-plugin removes `ARGS:X-Plex-Client-Profile-Extra` from 932235/932370 (9530100) and `ARGS:url` from 931100/934110 for loopback URLs only (9530110). Detection rules 9531200 and 9531220 here still inspect those targets.
 - **Coraza:** all regexes are RE2-compatible (no lookaround or backreferences); no persistent collections are used. Do not add a path-normalizing transform to the endpoint denies (see Endpoint denies). Check how your Coraza connector maps `drop`, or use the `SecRuleUpdateActionById` line above.
 - **Tags:** the plugin's rules carry `plex-hardening-plugin` (and `plex-hardening-plugin/endpoint-deny` on the denies), not `OWASP_CRS`. A tag-wide exclusion such as `ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS` therefore leaves this plugin's rules active on that path - intended, so a broad CRS exclusion on an unrelated application does not silently switch off Plex protection. To exclude the plugin's rules on a path, target the plugin's own tag or its ID range: `ctl:ruleRemoveByTag=plex-hardening-plugin` or `ctl:ruleRemoveById=9531100-9531999`.
 
