@@ -24,7 +24,7 @@ The endpoint denies assume the owner administers Plex on localhost or the LAN. T
 
 ## How to install the plugin
 
-Please see https://coreruleset.org/docs/concepts/plugins/#how-to-install-a-plugin
+Please see https://coreruleset.org/docs/4-about-plugins/4-1-plugins/#how-to-install-a-plugin
 
 Install plex-rule-exclusions-plugin first, then copy the two files into the CRS `plugins/` directory:
 
