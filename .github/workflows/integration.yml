@@ -2,7 +2,7 @@
 on: [push, pull_request]          # yamllint disable-line rule:truthy
 name: Integration tests
 
-permissions: 
+permissions:
   contents: read
 
 jobs:
