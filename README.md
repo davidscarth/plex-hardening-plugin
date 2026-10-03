@@ -4,14 +4,14 @@
 
 ## Description
 
-Hardening for [Plex Media Server](https://www.plex.tv/) behind an OWASP CRS 4.x reverse-proxy WAF (Coraza or ModSecurity): detection rules for CVE-2026-9665x and the Zenofex PoC classes, plus owner-only endpoint denies.
+Hardening for [Plex Media Server](https://www.plex.tv/) behind an OWASP CRS 4.x reverse-proxy WAF (Coraza or ModSecurity): detection rules for CVE-2026-9665x and the Zenofex PoC classes, plus endpoint denies for operations and surfaces no remote client needs.
 
 **Requires [plex-rule-exclusions-plugin](https://github.com/davidscarth/plex-rule-exclusions-plugin).** Without it, CRS at paranoia level 1 breaks Plex playback and search before any rule here matters. Install both.
 
 The plugin has two parts:
 
 - **Detection rules** (9531200-9531399) cover Plex-specific attack classes that pass CRS at PL1: CVE-2026-96651, -96652, -96654, -96655, -96656 and the Zenofex `Plex_Vuln_PoCs` findings.
-- **Endpoint denies** (9531400-9531499, on by default) drop owner-only management operations that a shared user's client never performs. Three endpoints that clients do poll routinely are split by method: `GET /activities`, `GET /updater/status` and `GET /transcode/sessions/{id}` are allowed and every verb other than `GET`, `HEAD` or `OPTIONS` on those paths is denied; `/updater/check|apply` and the bare `/transcode/sessions` list are denied outright.
+- **Endpoint denies** (9531400-9531499, on by default) drop operations and surfaces no remote client needs: owner-only management first (settings, updater, agents, library administration), plus the server-hosted web UI and the deprecated request proxy. Three endpoints that clients do poll routinely are split by method: `GET /activities`, `GET /updater/status` and `GET /transcode/sessions/{id}` are allowed and every verb other than `GET`, `HEAD` or `OPTIONS` on those paths is denied; `/updater/check|apply` and the bare `/transcode/sessions` list are denied outright.
 
 The CRS plugin documentation can be found on the [website](https://coreruleset.org/docs/4-about-plugins/4-1-plugins/).
 
@@ -32,6 +32,8 @@ Install plex-rule-exclusions-plugin first, then copy the two files into the CRS 
 plugins/plex-hardening-config.conf
 plugins/plex-hardening-before.conf
 ```
+
+On a WAF that serves anything besides Plex, set `tx.plex-hardening-plugin_hosts` first (see [Scoping to Plex on a shared WAF](#scoping-to-plex-on-a-shared-waf)). Unset, the endpoint denies apply to every site the WAF fronts, starting with their homepages.
 
 ## Disabling the plugin
 
@@ -57,7 +59,7 @@ Defaults are set in the before-file and only apply when the variable is not alre
 
 | Variable | Default | Config rule | Effect |
 |---|---|---|---|
-| `tx.plex-hardening-plugin_endpoint_deny_enabled` | `1` | 9531020 | Drop requests to owner-only endpoints (rules 9531400-9531499). Set to `0` if you administer Plex through the proxy. |
+| `tx.plex-hardening-plugin_endpoint_deny_enabled` | `1` | 9531020 | Drop requests for operations and surfaces no remote client needs, chiefly owner-only management (rules 9531400-9531499). Set to `0` if you administer Plex through the proxy. |
 | `tx.plex-hardening-plugin_xfh_tripwire_enabled` | `0` | 9531021 | Log a WARNING-scored event when a client supplies `X-Forwarded-Host`. Only enable at a first-hop proxy. |
 | `tx.plex-hardening-plugin_hosts` | unset | 9531023 | Scope the plugin to listed hosts and/or ports. Space-separated, slash-wrapped entries: `/name/` (any port), `/name:port/`, `/ip:port/`, or `/:port/` (any name on that port). Unset applies the plugin to every request. |
 | trusted source allowlist | commented | 9531022 | A commented `@ipMatch` rule in the config file; uncomment and list the networks you administer from to exempt them from the endpoint denies (detection rules still apply). `@ipMatch` cannot read a variable, so this is edited in place rather than set as `tx.`. |
@@ -86,8 +88,8 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 | `9531098` | Endpoint-deny sub-gate (removes 9531400-9531499) |
 | `9531099` | Plugin gate (removes 9531100-9531999) |
 | `9531100`-`9531199` | Unassigned. The companion plex-rule-exclusions-plugin keeps its exclusions at 9530100-9530199, so the two plugins merge by suffix |
-| `9531200`-`9531399` | Detection rules (phase 2, anomaly-scored); 9531200-9531290 in use |
-| `9531400`-`9531499` | Owner-only endpoint denies (phase 1, `drop`); 9531400-9531490 in use |
+| `9531200`-`9531399` | Detection rules (phase 2, anomaly-scored); 9531200-9531300 in use |
+| `9531400`-`9531499` | Endpoint denies, operations and surfaces no remote client needs (phase 1, `drop`); 9531400-9531490 in use |
 | `9531500`-`9531999` | Unused, reserved for response rules |
 
 ## Detection rules
@@ -104,6 +106,7 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 | 9531270 | reconnaissance signal | client-supplied `X-Forwarded-Host` (opt-in, WARNING score) |
 | 9531280 | CVE-2026-96651, Zenofex `metadata-file-read` (allowlist form) | `url=` on `/library/metadata/{id}/file` not a `media://`, `metadata://` or `upload://` reference |
 | 9531290 | any file read of Plex credentials | `Preferences.xml` (holds `PlexOnlineToken`) or `.LocalAdminToken` in the path or any parameter, however the read is delivered |
+| 9531300 | gap left by exclusions 9530110 | `url=` on `/photo/:/transcode` naming `127.0.0.1`, `localhost` or `[::1]` with an explicit port other than 32400 or 443; 9530110 lets loopback URLs past 931100/934110 on any port because clients copy the port they connected on, so another port is a request to a local service that is not Plex |
 
 9531220 tracks known dangerous settings by shape (`*Flags=`); it is defense-in-depth on a patched CVE, not a substitute for the patch, because Plex's fix is an allowlist whose full contents are not observable from outside.
 
@@ -154,8 +157,9 @@ The path denies match `REQUEST_URI` with `t:urlDecodeUni,t:lowercase`, so anchor
 
 ## What the owner can and cannot do through the proxy
 
-The endpoint denies (9531400-9531499) are an owner-only surface. Through the
-proxy, with denies on and no trusted-source allowlist:
+The endpoint denies (9531400-9531499) cover operations and surfaces no remote
+client needs, chiefly owner-only management. Through the proxy, with denies
+on and no trusted-source allowlist:
 
 - Works: browse, play, search, filter, edit item metadata (titles, posters,
   Fix Match), scan a library, playlists, downloads.

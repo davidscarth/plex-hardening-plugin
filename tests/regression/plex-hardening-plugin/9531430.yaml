@@ -229,3 +229,18 @@ tests:
         output:
           log:
             expect_ids: [9531430]
+  - test_id: 16
+    desc: "Absolute-form request target fires (Coraza keeps scheme://host in REQUEST_URI)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "http://localhost/:/prefs"
+        output:
+          log:
+            expect_ids: [9531430]

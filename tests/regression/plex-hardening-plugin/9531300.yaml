@@ -1,0 +1,126 @@
+---
+meta:
+  author: "David Scarth"
+  description: "loopback URL on a non-Plex port in the photo transcoder (gap left by exclusions 9530110)"
+rule_id: 9531300
+tests:
+  - test_id: 1
+    desc: "127.0.0.1 on port 8080 fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2F127.0.0.1%3A8080%2F&width=1&height=1"
+        output:
+          log:
+            expect_ids: [9531300]
+  - test_id: 2
+    desc: "localhost on port 22 fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2Flocalhost%3A22%2F&width=1&height=1"
+        output:
+          log:
+            expect_ids: [9531300]
+  - test_id: 3
+    desc: "[::1] on port 9090 fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2F%5B%3A%3A1%5D%3A9090%2Fx&width=1&height=1"
+        output:
+          log:
+            expect_ids: [9531300]
+  - test_id: 4
+    desc: "Plex port 32400 does not fire (the shape 9530110 excludes)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F1%2Fthumb%2F1&width=1&height=1"
+        output:
+          log:
+            no_expect_ids: [9531300]
+  - test_id: 5
+    desc: "Port 443 over https does not fire (observed from clients)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=https%3A%2F%2F127.0.0.1%3A443%2Flibrary%2Fmetadata%2F1%2Fthumb%2F1&width=1&height=1"
+        output:
+          log:
+            no_expect_ids: [9531300]
+  - test_id: 6
+    desc: "Loopback with no port does not fire (not matched by design)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2F127.0.0.1%2Fx&width=1&height=1"
+        output:
+          log:
+            no_expect_ids: [9531300]
+  - test_id: 7
+    desc: "Non-loopback host on port 8080 does not fire (CRS 931100/934110 still inspect it)"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/photo/:/transcode?url=http%3A%2F%2Fexample.com%3A8080%2F&width=1&height=1"
+        output:
+          log:
+            no_expect_ids: [9531300]
+  - test_id: 8
+    desc: "Same url= on another endpoint is out of scope"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections?url=http%3A%2F%2F127.0.0.1%3A8080%2F"
+        output:
+          log:
+            no_expect_ids: [9531300]

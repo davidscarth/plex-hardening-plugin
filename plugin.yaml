@@ -5,13 +5,14 @@ schema_version: 1
 
 plugin:
   name: "plex-hardening-plugin"
-  description: "Detection rules and owner-only endpoint denies for Plex Media Server behind OWASP CRS. Requires plex-rule-exclusions-plugin."
+  description: "Detection rules and endpoint denies for operations and surfaces no remote client needs, for Plex Media Server behind OWASP CRS. Requires plex-rule-exclusions-plugin."
   long_description: |
     Detection rules for CVE-2026-96651, -96652, -96654, -96655, -96656 and
     the Zenofex Plex_Vuln_PoCs classes, and optional phase-1 denies for
-    owner-only management endpoints (/web, /myplex, /:/prefs, /system/agents,
-    /system/proxy, ...) on a reverse proxy that serves shared users' clients
-    only. Written after a 2026 stolen-token incident on a live Plex server.
+    operations and surfaces no remote client needs, chiefly owner-only
+    management (/web, /myplex, /:/prefs, /system/agents, /system/proxy, ...)
+    on a reverse proxy that serves shared users' clients only. Written after
+    a 2026 stolen-token incident on a live Plex server.
   type: "3rd-party"
   category: "protection"
   status: "tested"
@@ -48,7 +49,7 @@ configuration:
     - name: "tx.plex-hardening-plugin_endpoint_deny_enabled"
       type: "boolean"
       default: 1
-      description: "Drop requests to owner-only Plex management endpoints (rules 9531400-9531499)."
+      description: "Drop requests for operations and surfaces no remote client needs, chiefly owner-only Plex management endpoints (rules 9531400-9531499)."
       required: false
     - name: "tx.plex-hardening-plugin_hosts"
       type: "list"
