@@ -1,0 +1,111 @@
+---
+meta:
+  author: "David Scarth"
+  description: "non-numeric Companion subscribe port= (CVE-2026-96652, plex2shell)"
+rule_id: 9531320
+tests:
+  - test_id: 1
+    desc: "port carrying a path fires"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http&host=192.168.1.50&port=1/x&commandID=1"
+        output:
+          log:
+            expect_ids: [9531320]
+  - test_id: 2
+    desc: "letters in port= fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http&host=192.168.1.50&port=abc&commandID=1"
+        output:
+          log:
+            expect_ids: [9531320]
+  - test_id: 3
+    desc: "plain IPv4 host with a numeric port does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http&host=192.168.1.50&port=32500&commandID=1"
+        output:
+          log:
+            no_expect_ids: [9531320]
+  - test_id: 4
+    desc: "plain hostname with the Plex port does not fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http&host=player.local&port=32400&commandID=1"
+        output:
+          log:
+            no_expect_ids: [9531320]
+  - test_id: 5
+    desc: "same bad port= on another endpoint is out of scope"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/library/sections?host=192.168.1.50&port=1/x"
+        output:
+          log:
+            no_expect_ids: [9531320]
+  - test_id: 6
+    desc: "DELIBERATE: bare port= (empty value) fires. Every observed Companion subscribe carries port=32400. An empty port cannot build a callback URL, so the strict check is kept on purpose"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/timeline/subscribe?protocol=http&host=192.168.1.50&port=&commandID=1"
+        output:
+          log:
+            expect_ids: [9531320]
+  - test_id: 7
+    desc: "letters in port= on the proxy subscribe route fire"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          headers:
+            Host: localhost
+            User-Agent: OWASP CRS
+            Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+          port: 80
+          method: GET
+          uri: "/player/proxy/subscribe?protocol=http&host=192.168.1.50&port=abc&commandID=1"
+        output:
+          log:
+            expect_ids: [9531320]

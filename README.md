@@ -88,7 +88,7 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 | `9531098` | Endpoint-deny sub-gate (removes 9531400-9531499) |
 | `9531099` | Plugin gate (removes 9531100-9531999) |
 | `9531100`-`9531199` | Unassigned. The companion plex-rule-exclusions-plugin keeps its exclusions at 9530100-9530199, so the two plugins merge by suffix |
-| `9531200`-`9531399` | Detection rules (phase 2, anomaly-scored); 9531200-9531300 in use |
+| `9531200`-`9531399` | Detection rules (phase 2, anomaly-scored); 9531200-9531320 in use |
 | `9531400`-`9531499` | Endpoint denies, operations and surfaces no remote client needs (phase 1, `drop`); 9531400-9531490 in use |
 | `9531500`-`9531999` | Unused, reserved for response rules |
 
@@ -100,19 +100,21 @@ The plugin uses the allocated block **9531000-9531999**, laid out per convention
 | 9531210 | observed attack signature | traversal in `url=` on `/library/metadata/{id}/file` (backstop to 930100) |
 | 9531220 | Zenofex `profile-extra-rce` | any `*Flags=` setting in `X-Plex-Client-Profile-Extra`, header or query |
 | 9531230 | CVE-2026-96655 | any `scheme:/` or `//host` in transcoder `path=` (clients send library references only) |
-| 9531240 | CVE-2026-96652, Zenofex `companion-proxy-ssrf` | `protocol=` on `/player/timeline/subscribe` not `http`/`https` |
+| 9531240 | CVE-2026-96652, Zenofex `companion-proxy-ssrf` | `protocol=` on `/player/timeline/subscribe` or `/player/proxy/subscribe` not `http`/`https` |
 | 9531250 | CVE-2026-96656, Zenofex `network-transcoder-preference`, `legacy-pth-rce` | path separator or line break in `Transcoder*Options` or `Transcoder*OptionsOverride` on `/:/prefs`, catching any file-naming x264 option (backstop; endpoint is denied by default) |
 | 9531260 | CVE-2026-96654, Zenofex `framework-rpc-injection`, `legacy-pth-rce` | `/`, `\` or `#` in `identifier=` under `/system/agents/` (backstop) |
 | 9531270 | reconnaissance signal | client-supplied `X-Forwarded-Host` (opt-in, WARNING score) |
 | 9531280 | CVE-2026-96651, Zenofex `metadata-file-read` (allowlist form) | `url=` on `/library/metadata/{id}/file` not a `media://`, `metadata://` or `upload://` reference |
 | 9531290 | any file read of Plex credentials | `Preferences.xml` (holds `PlexOnlineToken`) or `.LocalAdminToken` in the path or any parameter, however the read is delivered |
-| 9531300 | loopback fetch through the photo transcoder (pairs with exclusions 9530110) | `url=` on `/photo/:/transcode` naming `127.0.0.1`, `localhost`, or `[::1]` with an explicit port other than 32400 or 443; 9530110 cannot fix the port because clients copy the one they connected on, so this rule checks it |
+| 9531300 | loopback fetch through the photo transcoder (pairs with exclusions 9530110) | `url=` on `/photo/:/transcode` naming `127.0.0.1`, `localhost`, or `[::1]` with an explicit port other than 32400 or 443. Clients copy the port they connected on, so 9530110 excludes every loopback port and this rule checks it |
+| 9531310 | CVE-2026-96652, plex2shell write-up | `host=` on `/player/timeline/subscribe` or `/player/proxy/subscribe` containing `/`, `?`, `#`, `@`, or `\`, so a valid `protocol=` cannot carry a loopback path (the callback URL is `protocol://host:port`) |
+| 9531320 | CVE-2026-96652, plex2shell write-up | `port=` on the same two endpoints that is not one to five digits |
 
 9531220 tracks known dangerous settings by shape (`*Flags=`); it is defense-in-depth on a patched CVE, not a substitute for the patch, because Plex's fix is an allowlist whose full contents are not observable from outside.
 
 Detection rules run in phase 2, score CRITICAL (9531270: WARNING) into `tx.inbound_anomaly_score_pl1` (one hit meets the default threshold) and respect `SecDefaultAction` through `block`. They are phase 2 even where phase 1 would do, because rules in a before-file run ahead of CRS 901 initialization in phase 1, where `tx.critical_anomaly_score` is not yet defined, so any score referenced there is empty.
 
-The endpoint denies ran as reverse-proxy rules before being converted. 9531200 and 9531220 ran in production as standalone rules during and after a 2026 shared-user token compromise. The remaining detection rules (9531230-9531280) were written from the Zenofex findings and Plex's fix strings and confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. 9531290 matches the credential files themselves, however a read is delivered. On 9531280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
+The endpoint denies ran as reverse-proxy rules before being converted. 9531200 and 9531220 ran in production as standalone rules during and after a 2026 shared-user token compromise. 9531230-9531280 were written from the Zenofex findings and Plex's fix strings, 9531310 and 9531320 from the plex2shell write-up, and all were confirmed to fire on their target shapes, but have less production runtime; they match published exploit shapes and are not a substitute for updating Plex. 9531240 follows Plex's Remote control API documentation (`protocol` is `http` or `https`); `/player/proxy/subscribe` and `host=` are not documented there and come from testing against PMS 1.43.4 and the write-up. 9531290 matches the credential files themselves, however a read is delivered. 9531300 checks what exclusions 9530110 lets through. On 9531280, `media://` is what clients send on that endpoint; `metadata://` and `upload://` are included defensively. Trim if your traffic shows only `media://`.
 
 ## Endpoint denies
 
